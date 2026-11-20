@@ -73,10 +73,19 @@ export type ConfigureFunction = (cb: TokenCallback) => Configuration;
 export type MessageRole = "user" | "assistant" | "tool" | "system" | "extra" | "welcome";
 export type Rating = "up" | "down";
 
+export interface SourceDocumentMetadata {
+  document: string;
+  key: string;
+  paragraph_id: number;
+  temporary_url?: string | null;
+  h1?: string | null;
+  h2?: string | null;
+  h3?: string | null;
+}
+
 export interface SourceDocument {
-  id: string;
-  name: string;
-  quote?: string | null;
+  page_content: string;
+  metadata: SourceDocumentMetadata;
 }
 
 export interface Feedback {
@@ -86,14 +95,14 @@ export interface Feedback {
 }
 
 export interface TokenUsage {
-  prompt?: number;
-  completion?: number;
-  total?: number;
+  completion_input_tokens: number;
+  completion_output_tokens: number;
+  embedding_tokens: number;
 }
 
 export interface ConversationStepMetadata {
   source_documents?: SourceDocument[];
-  suggested_prompts?: string[];
+  suggested_prompts?: PromptSuggestion[];
   thinking?: string;
   tool_calls?: unknown[];
   tokens?: TokenUsage;

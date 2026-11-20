@@ -3,10 +3,13 @@ namespace Commonroom.ReferenceApi.Engine;
 /// <summary>One previous turn of the conversation passed to the engine (user or assistant only).</summary>
 public sealed record ChatTurn(string Role, string Content);
 
-/// <summary>A document cited by the engine.</summary>
-public sealed record SourceDocument(string Id, string Name, string? Quote);
+/// <summary>Where a cited passage comes from: document name, document key (file id), citation index, headings.</summary>
+public sealed record SourceDocumentMetadata(string Document, string Key, int ParagraphId, string? TemporaryUrl, string? H1, string? H2, string? H3);
 
-public sealed record TokenUsage(int Prompt, int Completion, int Total);
+/// <summary>A document passage cited by the engine.</summary>
+public sealed record SourceDocument(string PageContent, SourceDocumentMetadata Metadata);
+
+public sealed record TokenUsage(int CompletionInputTokens, int CompletionOutputTokens, int EmbeddingTokens);
 
 public sealed record ChatAnswer(string Content, IReadOnlyList<SourceDocument> SourceDocuments, TokenUsage? Tokens);
 
@@ -35,9 +38,10 @@ public sealed class FakeChatEngine : IChatEngine
         var content = $"echo: {userText}";
         var docs = new[]
         {
-            new SourceDocument(FakeDocumentId, FakeDocumentName, "Commonroom Labs: documento di esempio usato dal FakeChatEngine."),
+            new SourceDocument("Commonroom Labs: documento di esempio usato dal FakeChatEngine.",
+                new SourceDocumentMetadata(FakeDocumentName, FakeDocumentId, 0, null, "Documento di esempio", null, null)),
         };
-        var tokens = new TokenUsage(userText.Length, content.Length, userText.Length + content.Length);
+        var tokens = new TokenUsage(userText.Length, content.Length, 0);
         return Task.FromResult(new ChatAnswer(content, docs, tokens));
     }
 }

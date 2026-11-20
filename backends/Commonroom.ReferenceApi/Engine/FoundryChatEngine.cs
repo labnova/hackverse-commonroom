@@ -69,7 +69,7 @@ public sealed class FoundryChatEngine : IChatEngine
             {
                 if (hit.FileId is { } id && hit.Text is { } text && !quotes.ContainsKey(id))
                 {
-                    quotes[id] = text.Length > MaxQuoteLength ? text[..MaxQuoteLength] : text;
+                    quotes[id] = text;
                 }
             }
         }
@@ -84,13 +84,32 @@ public sealed class FoundryChatEngine : IChatEngine
                 {
                     if (citation.FileId is { } fileId && seen.Add(fileId))
                     {
-                        docs.Add(new SourceDocument(fileId, citation.Filename ?? fileId, quotes.GetValueOrDefault(fileId)));
+                        var text = quotes.GetValueOrDefault(fileId) ?? string.Empty;
+                        var pageContent = text.Length > MaxQuoteLength ? text[..MaxQuoteLength] : text;
+                        docs.Add(new SourceDocument(pageContent, new SourceDocumentMetadata(
+                            citation.Filename ?? fileId, fileId, docs.Count, null,
+                            Heading(text, "# "), Heading(text, "## "), Heading(text, "### "))));
                     }
                 }
             }
         }
 
-        var tokens = result.Usage is { } u ? new TokenUsage(u.InputTokenCount, u.OutputTokenCount, u.TotalTokenCount) : null;
+        var tokens = result.Usage is { } u ? new TokenUsage(u.InputTokenCount, u.OutputTokenCount, 0) : null;
         return new ChatAnswer(result.GetOutputText() ?? string.Empty, docs, tokens);
+    }
+
+    /// <summary>First line starting with <paramref name="prefix"/> ("# ", "## ", "### "), without the hashes; null if none.</summary>
+    private static string? Heading(string text, string prefix)
+    {
+        foreach (var raw in text.Split('\n'))
+        {
+            var line = raw.TrimEnd('\r');
+            if (line.StartsWith(prefix, StringComparison.Ordinal))
+            {
+                var value = line[prefix.Length..].Trim();
+                return value.Length > 0 ? value : null;
+            }
+        }
+        return null;
     }
 }

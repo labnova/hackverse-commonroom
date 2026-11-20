@@ -40,8 +40,12 @@ export function Message({ message, t, onFeedback }: Props) {
           {sources.length > 0 && (
             <ul className="cr-sources" aria-label={t.sources}>
               {sources.map((doc) => (
-                <li key={doc.id} className="cr-chip cr-chip--source" title={doc.quote ?? doc.name}>
-                  <span aria-hidden="true">📄</span> {doc.name}
+                <li
+                  key={doc.metadata.key}
+                  className="cr-chip cr-chip--source"
+                  title={(doc.metadata.h1 ? doc.metadata.h1 + " — " : "") + doc.page_content}
+                >
+                  <span aria-hidden="true">📄</span> {doc.metadata.document}
                 </li>
               ))}
             </ul>
