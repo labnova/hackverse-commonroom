@@ -1,0 +1,9 @@
+{
+  "app": "dotnet run --project Commonroom.Infra.csproj",
+  "context": {
+    "projects": ["demo-host", "project-alpha"],
+    "devAuth": false,
+    "callbackUrls": ["http://localhost:5173/callback"],
+    "logoutUrls": ["http://localhost:5173/"]
+  }
+}

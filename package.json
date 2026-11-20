@@ -1,0 +1,17 @@
+{
+  "name": "commonroom",
+  "private": true,
+  "description": "Commonroom Chat monorepo (npm workspaces): white-label chat widget + demo host.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @commonroom/chat-widget && npm run build -w @commonroom/demo-host",
+    "test": "npm run test -w @commonroom/chat-widget",
+    "dev": "npm run dev -w @commonroom/demo-host"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}

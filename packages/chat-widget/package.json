@@ -1,0 +1,39 @@
+{
+  "name": "@commonroom/chat-widget",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Commonroom Chat: white-label chatbot web component <commonroom-chat>.",
+  "type": "module",
+  "main": "./dist/commonroom-chat.js",
+  "module": "./dist/commonroom-chat.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/commonroom-chat.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": true,
+  "scripts": {
+    "build": "tsc --noEmit && vite build && tsc -p tsconfig.build.json && node scripts/size.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-markdown": "^10.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.8",
+    "vitest": "^5.1.1"
+  }
+}

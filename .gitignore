@@ -1,0 +1,15 @@
+bin/
+obj/
+node_modules/
+cdk.out/
+.env
+.env.*
+!.env.example
+*.user
+.vs/
+appsettings.*.local.json
+*.db
+*.db-shm
+*.db-wal
+dist/
+*.tsbuildinfo

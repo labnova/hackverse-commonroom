@@ -1,0 +1,915 @@
+openapi: 3.1.0
+info:
+  title: Commonroom Chat API
+  version: 0.2.0
+  summary: REST contract every project backend implements for the Commonroom Chat widget.
+  description: |
+    Contract-first API consumed directly by the Commonroom Chat web component.
+    Each project backend validates Cognito **access tokens** issued for its own app client
+    (`client_id` claim) and requires a project API key in `X-Api-Key`.
+
+    `X-User-Identity` is informational only: backends MUST derive the effective identity
+    from the token (`sub`, `email`, `cognito:groups`) and never authorize from the header.
+  contact:
+    name: Commonroom Labs
+    url: https://commonroom.example
+  license:
+    name: Proprietary
+    url: https://commonroom.example/license
+servers:
+  - url: http://localhost:5080
+    description: Reference backend (local)
+tags:
+  - name: conversations
+    description: Conversation lifecycle.
+  - name: messages
+    description: Messages inside a conversation.
+  - name: documents
+    description: Documents attached to or retrieved for a conversation.
+  - name: diagnostics
+    description: Health and identity diagnostics.
+security:
+  - bearerAuth: []
+    apiKey: []
+
+paths:
+  /health:
+    get:
+      tags: [diagnostics]
+      operationId: getHealth
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Service is alive.
+          headers:
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+        '4XX':
+          $ref: '#/components/responses/Problem'
+
+  /me:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/UserIdentity'
+    get:
+      tags: [diagnostics]
+      operationId: getMe
+      summary: Identity derived from the access token
+      responses:
+        '200':
+          description: Identity as seen by the backend.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /conversations:
+    parameters:
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/UserIdentity'
+    post:
+      tags: [conversations]
+      operationId: createConversation
+      summary: Create a conversation with its first message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateConversationRequest'
+      responses:
+        '201':
+          description: Conversation created; includes the first exchange.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateConversationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        default:
+          $ref: '#/components/responses/Problem'
+    get:
+      tags: [conversations]
+      operationId: listConversations
+      summary: List the caller's conversations
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: A page of conversations, most recently updated first.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /conversations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/UserIdentity'
+    get:
+      tags: [conversations]
+      operationId: getConversation
+      summary: Get a conversation
+      responses:
+        '200':
+          description: The conversation.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+    patch:
+      tags: [conversations]
+      operationId: updateConversation
+      summary: Rename a conversation (metadata is immutable)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateConversationRequest'
+      responses:
+        '200':
+          description: The updated conversation.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+    delete:
+      tags: [conversations]
+      operationId: deleteConversation
+      summary: Delete a conversation (soft delete)
+      responses:
+        '204':
+          description: Deleted.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /conversations/{id}/messages:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/UserIdentity'
+    get:
+      tags: [messages]
+      operationId: listMessages
+      summary: List messages of a conversation
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: A page of messages ordered by conversation_step.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationMessagePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+    post:
+      tags: [messages]
+      operationId: sendMessage
+      summary: Send a user message and receive the reply
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: The assistant reply (feedbackNeeded=true). The user message is stored as the previous step.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationMessage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /conversations/{id}/read-state:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/UserIdentity'
+    put:
+      tags: [conversations]
+      operationId: putReadState
+      summary: Set the last step read by the caller
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadState'
+      responses:
+        '204':
+          description: Read state stored.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /conversations/{id}/documents:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/UserIdentity'
+    get:
+      tags: [documents]
+      operationId: listDocuments
+      summary: List documents of a conversation
+      responses:
+        '200':
+          description: Documents referenced by the conversation.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConversationDocument'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /conversations/{id}/documents/{docId}:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+      - $ref: '#/components/parameters/DocumentId'
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/UserIdentity'
+    get:
+      tags: [documents]
+      operationId: getDocument
+      summary: Get a document of a conversation
+      responses:
+        '200':
+          description: The document.
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConversationDocument'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+
+  /conversations/{id}/messages/{step}/feedback:
+    parameters:
+      - $ref: '#/components/parameters/ConversationId'
+      - $ref: '#/components/parameters/Step'
+      - $ref: '#/components/parameters/CorrelationId'
+      - $ref: '#/components/parameters/SessionId'
+      - $ref: '#/components/parameters/UserIdentity'
+    post:
+      tags: [messages]
+      operationId: postFeedback
+      summary: Rate an assistant message (400 if the step is not an assistant message)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+      responses:
+        '204':
+          description: Feedback stored (replaces any previous feedback on the step).
+          headers:
+            X-Correlation-Id:
+              $ref: '#/components/headers/CorrelationId'
+            X-Commonroom-Contract:
+              $ref: '#/components/headers/Contract'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        default:
+          $ref: '#/components/responses/Problem'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Cognito **access token** issued for the project's app client (`token_use=access`, `client_id` = project client).
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+      description: Project API key.
+
+  headers:
+    Contract:
+      description: Contract implemented by the backend (name/version). Present on every response.
+      schema:
+        type: string
+        examples: [commonroom-chat/0.2.0]
+    CorrelationId:
+      description: Echo of the request X-Correlation-Id, or a generated one when absent.
+      schema:
+        type: string
+        maxLength: 128
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      description: Client-supplied correlation id (`[A-Za-z0-9._:-]`, max 128). Generated by the server when absent.
+      schema:
+        type: string
+        maxLength: 128
+        pattern: '^[A-Za-z0-9._:-]+$'
+    SessionId:
+      name: X-Session-Id
+      in: header
+      required: false
+      description: Widget session id.
+      schema:
+        type: string
+        maxLength: 128
+    UserIdentity:
+      name: X-User-Identity
+      in: header
+      required: false
+      description: |
+        JSON-encoded `UserIdentifier` supplied by the host. **Not trusted**: logged for diagnostics only,
+        never used for authorization. Identity always comes from the access token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/UserIdentifier'
+    ConversationId:
+      name: id
+      in: path
+      required: true
+      description: Conversation id.
+      schema:
+        type: string
+    DocumentId:
+      name: docId
+      in: path
+      required: true
+      description: Document id.
+      schema:
+        type: string
+    Step:
+      name: step
+      in: path
+      required: true
+      description: The conversation_step of the message being rated.
+      schema:
+        type: integer
+        minimum: 0
+    Page:
+      name: page
+      in: query
+      required: false
+      description: 1-based page number.
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: page_size
+      in: query
+      required: false
+      description: Items per page (default 20). Values above 100 are clamped to 100; the response reports the effective page_size.
+      schema:
+        type: integer
+        minimum: 1
+        default: 20
+
+  responses:
+    Unauthorized:
+      description: Missing/invalid bearer token (`unauthorized`) or missing/invalid API key (`invalid_api_key`).
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+        X-Commonroom-Contract:
+          $ref: '#/components/headers/Contract'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    TooManyRequests:
+      description: Per-user message limit reached (`rate_limited`); see Retry-After.
+      headers:
+        Retry-After:
+          description: Seconds to wait before retrying.
+          schema:
+            type: integer
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+        X-Commonroom-Contract:
+          $ref: '#/components/headers/Contract'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    BadRequest:
+      description: Invalid request (`bad_request`).
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+        X-Commonroom-Contract:
+          $ref: '#/components/headers/Contract'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Forbidden:
+      description: Authenticated but not allowed (`forbidden`), or `vector_store_id` not in the allow-list (`vector_store_forbidden`).
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+        X-Commonroom-Contract:
+          $ref: '#/components/headers/Contract'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    NotFound:
+      description: Resource not found (`not_found`).
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+        X-Commonroom-Contract:
+          $ref: '#/components/headers/Contract'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+    Problem:
+      description: Any other error, e.g. `not_implemented` (501).
+      headers:
+        X-Correlation-Id:
+          $ref: '#/components/headers/CorrelationId'
+        X-Commonroom-Contract:
+          $ref: '#/components/headers/Contract'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+
+  schemas:
+    ErrorCode:
+      type: string
+      enum: [bad_request, unauthorized, forbidden, invalid_api_key, vector_store_forbidden, not_found, rate_limited, not_implemented]
+
+    Problem:
+      type: object
+      description: RFC 9457 problem details with a machine-readable `code`.
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          $ref: '#/components/schemas/ErrorCode'
+        correlation_id:
+          type: string
+      additionalProperties: true
+
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+
+    Me:
+      type: object
+      required: [sub, email, roles, client_id, header_identity_matches]
+      properties:
+        sub:
+          type: string
+        email:
+          type: [string, 'null']
+          description: Present only if the token carries an email claim.
+        roles:
+          type: array
+          description: Values of `cognito:groups`.
+          items:
+            type: string
+        client_id:
+          type: string
+        header_identity_matches:
+          type: boolean
+          description: True only when X-User-Identity is present, valid and its user_id equals the token `sub`.
+
+    UserIdentifier:
+      type: object
+      required: [user_id, user_name, user_email, user_role]
+      properties:
+        user_id:
+          type: string
+        user_name:
+          type: string
+        user_email:
+          type: string
+          format: email
+        user_role:
+          type: string
+
+    MessageRole:
+      type: string
+      enum: [user, assistant, tool, system, extra, welcome]
+
+    SourceDocument:
+      type: object
+      description: A document cited by the assistant (file_citation annotation).
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: Document (file) id.
+        name:
+          type: string
+          description: File name.
+        quote:
+          type: [string, 'null']
+          description: Retrieved passage backing the citation, when available.
+
+    ToolCall:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        arguments:
+          type: object
+          additionalProperties: true
+        result:
+          description: Tool output, any JSON value.
+
+    TokenUsage:
+      type: object
+      properties:
+        prompt:
+          type: integer
+          minimum: 0
+        completion:
+          type: integer
+          minimum: 0
+        total:
+          type: integer
+          minimum: 0
+
+    Rating:
+      type: string
+      enum: [up, down]
+
+    Feedback:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          $ref: '#/components/schemas/Rating'
+        comment:
+          type: [string, 'null']
+          maxLength: 2000
+        created_at:
+          type: string
+          format: date-time
+
+    ConversationStepMetadata:
+      type: object
+      properties:
+        source_documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/SourceDocument'
+        suggested_prompts:
+          type: array
+          items:
+            type: string
+        thinking:
+          type: string
+        tool_calls:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolCall'
+        tokens:
+          $ref: '#/components/schemas/TokenUsage'
+        feedback:
+          $ref: '#/components/schemas/Feedback'
+
+    ConversationMessage:
+      type: object
+      required: [session_id, conversation_id, correlation_id, timestamp, conversation_step, role, content]
+      properties:
+        session_id:
+          type: string
+        conversation_id:
+          type: string
+        correlation_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        conversation_step:
+          type: integer
+          minimum: 0
+        role:
+          $ref: '#/components/schemas/MessageRole'
+        content:
+          type: string
+        feedbackNeeded:
+          type: boolean
+        metadata:
+          $ref: '#/components/schemas/ConversationStepMetadata'
+
+    ConversationMetadata:
+      type: object
+      required: [vector_store_id]
+      properties:
+        vector_store_id:
+          type: [string, 'null']
+      additionalProperties: true
+
+    Conversation:
+      type: object
+      required: [id, title, created_at, updated_at, metadata]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_read_step:
+          type: integer
+          minimum: 0
+        metadata:
+          $ref: '#/components/schemas/ConversationMetadata'
+
+    ConversationDocument:
+      type: object
+      description: A source document cited at least once in the conversation (deduplicated by id).
+      required: [id, name, first_step, citation_count]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        quote:
+          type: [string, 'null']
+          description: First quote seen for this document.
+        first_step:
+          type: integer
+          minimum: 0
+          description: conversation_step of the first assistant message citing it.
+        citation_count:
+          type: integer
+          minimum: 1
+
+    Page:
+      type: object
+      description: Generic page envelope (`Page<T>`); concrete pages narrow `items`.
+      required: [items, page, page_size, total]
+      properties:
+        items:
+          type: array
+          items: {}
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+        total:
+          type: integer
+          minimum: 0
+
+    ConversationPage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Conversation'
+
+    ConversationMessagePage:
+      allOf:
+        - $ref: '#/components/schemas/Page'
+        - type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ConversationMessage'
+
+    ConversationMetadataInput:
+      type: object
+      description: Metadata supplied when creating a conversation. `vector_store_id` must be in the backend allow-list.
+      properties:
+        vector_store_id:
+          type: [string, 'null']
+      additionalProperties: true
+
+    CreateConversationRequest:
+      type: object
+      description: Creates the conversation (title = first 60 characters of `content`), step 1 (user) and step 2 (assistant).
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 16000
+        metadata:
+          $ref: '#/components/schemas/ConversationMetadataInput'
+
+    CreateConversationResponse:
+      type: object
+      required: [conversation, messages]
+      properties:
+        conversation:
+          $ref: '#/components/schemas/Conversation'
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationMessage'
+
+    UpdateConversationRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+
+    SendMessageRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          minLength: 1
+          maxLength: 16000
+        metadata:
+          type: object
+          description: Ignored. An existing conversation always uses its stored metadata.
+          additionalProperties: true
+
+    ReadState:
+      type: object
+      required: [step]
+      properties:
+        step:
+          type: integer
+          minimum: 0
+          description: Last conversation_step read by the caller (0 .. last step).
+
+    FeedbackRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          $ref: '#/components/schemas/Rating'
+        comment:
+          type: string
+          maxLength: 2000
