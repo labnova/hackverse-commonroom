@@ -39,5 +39,5 @@ npm run build -w @commonroom/chat-widget   # the host imports the built widget
 npm run dev          # http://localhost:5173
 ```
 
-Sign in as `test@commonroom.dev` (password in `%USERPROFILE%\.commonroom-dev.txt`).
+Sign in with a user created in the pool (see root README, step 1).
 Logout clears the local session and redirects to the Cognito `/logout` endpoint.
