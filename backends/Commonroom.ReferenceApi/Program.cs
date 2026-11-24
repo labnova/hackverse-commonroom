@@ -141,9 +141,9 @@ using (var scope = app.Services.CreateScope())
 app.UseCorrelationId();
 app.UseExceptionHandler();
 app.UseCors();
+app.UseApiKey();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseApiKey();
 app.UseUserIdentityHeader();
 app.UseRateLimiter();
 

@@ -40,7 +40,7 @@ export function widgetConfiguration(user: User | null | undefined, refresh: () =
   const email = typeof profile?.email === "string" ? profile.email : "";
 
   return {
-    api_key: env.VITE_API_KEY || "dev-key",
+    api_key: required("VITE_API_KEY"),
     base_path: env.VITE_API_BASE || "http://localhost:5080",
     backend_provider: "openapi",
     lang: "it",

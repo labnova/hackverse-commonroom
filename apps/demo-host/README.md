@@ -24,7 +24,7 @@ $env:VectorStores__Allowed__0 = "<vs_...>"
 $env:Cognito__Region = "eu-central-1"
 $env:Cognito__UserPoolId = "<UserPoolId>"
 $env:Cognito__ClientId = "<ClientIdProjectAlpha>"
-$env:ApiKeys__Allowed__0 = "dev-key"
+$env:ApiKeys__Allowed__0 = "<api-key>"
 $env:Cors__AllowedOrigins__0 = "http://localhost:5173"
 dotnet run --project backends/Commonroom.ReferenceApi --urls http://localhost:5080
 ```
