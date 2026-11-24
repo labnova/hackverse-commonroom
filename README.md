@@ -337,19 +337,27 @@ unset SWA_CLI_DEPLOYMENT_TOKEN
 Re-deploy `CommonroomAuthStack` without `devAuth`, adding the Static Web App to `project-alpha`
 (localhost stays from `cdk.json`):
 
+The Hosted UI domain must keep the `domainPrefix` used at the first deploy: without it the default
+(`commonroom-<account-id>`) applies and the domain is replaced. Save it once in
+`infra/Commonroom.Infra/cdk.context.json`, which CDK reads automatically and which stays local
+(it is in `.gitignore`). Keys go at the top level, with no `"context"` section, unlike `cdk.json`:
+
+```json
+{
+  "domainPrefix": "commonroom-<unique-suffix>"
+}
+```
+
 ```bash
 cd infra/Commonroom.Infra
 npx cdk diff CommonroomAuthStack \
-  -c domainPrefix=commonroom-<unique-suffix> \
   -c callbackUrls:project-alpha=https://<swa-hostname>/callback \
   -c logoutUrls:project-alpha=https://<swa-hostname>/
 npx cdk deploy CommonroomAuthStack \
-  -c domainPrefix=commonroom-<unique-suffix> \
   -c callbackUrls:project-alpha=https://<swa-hostname>/callback \
   -c logoutUrls:project-alpha=https://<swa-hostname>/
 ```
 
-Always pass the same `domainPrefix` used at the first deploy: without it the Hosted UI domain is replaced.
 Check that `cdk diff` touches only what you expect. Without `devAuth` the clients only have
 `ALLOW_REFRESH_TOKEN_AUTH`, so the CLI tokens of [step 3](#3-get-an-access-token-devauth-only) are not available.
 
