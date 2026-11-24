@@ -376,11 +376,13 @@ public static class ConversationEndpoints
             if (ParseObject(row.MetadataJson)["source_documents"] is not JsonArray list) continue;
             foreach (var item in list.OfType<JsonObject>())
             {
-                if (item["id"]?.GetValue<string>() is not { } docId) continue;
+                // 0.3.0 shape: page_content + metadata{document, key}; fallback to 0.2.0 id/name/quote for stored messages.
+                var meta = item["metadata"] as JsonObject;
+                if ((meta?["key"] ?? item["id"])?.GetValue<string>() is not { } docId) continue;
                 docs[docId] = docs.TryGetValue(docId, out var seen)
                     ? seen with { CitationCount = seen.CitationCount + 1 }
-                    : new ConversationDocumentDto(docId, item["name"]?.GetValue<string>() ?? docId,
-                        item["quote"]?.GetValue<string>(), row.Step, 1);
+                    : new ConversationDocumentDto(docId, (meta?["document"] ?? item["name"])?.GetValue<string>() ?? docId,
+                        (item["page_content"] ?? item["quote"])?.GetValue<string>(), row.Step, 1);
             }
         }
         return docs.Values.ToList();

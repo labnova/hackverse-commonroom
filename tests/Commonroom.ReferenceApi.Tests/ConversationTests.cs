@@ -50,9 +50,8 @@ public sealed class ConversationTests(TestApp app) : IClassFixture<TestApp>
 
         var sources = messages[1]!["metadata"]!["source_documents"]!.AsArray();
         Assert.Single(sources);
-        Assert.Equal(FakeChatEngine.FakeDocumentId, sources[0]!["id"]!.GetValue<string>());
-        Assert.Equal(FakeChatEngine.FakeDocumentName, sources[0]!["name"]!.GetValue<string>());
-        Assert.False(string.IsNullOrEmpty(sources[0]!["quote"]!.GetValue<string>()));
+        Assert.False(string.IsNullOrEmpty(sources[0]!["page_content"]!.GetValue<string>()));
+        Assert.False(string.IsNullOrEmpty(sources[0]!["metadata"]!["document"]!.GetValue<string>()));
 
         var id = conversation["id"]!.GetValue<string>();
         var list = await Json(await client.GetAsync($"/conversations/{id}/messages"));

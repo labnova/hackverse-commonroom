@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Commonroom Chat API
-  version: 0.2.0
+  version: 0.3.0
   summary: REST contract every project backend implements for the Commonroom Chat widget.
   description: |
     Contract-first API consumed directly by the Commonroom Chat web component.
@@ -652,18 +652,37 @@ components:
 
     SourceDocument:
       type: object
-      description: A document cited by the assistant (file_citation annotation).
-      required: [id, name]
+      description: A document passage cited by the assistant (file_citation annotation).
+      required: [page_content, metadata]
       properties:
-        id:
+        page_content:
+          type: string
+          description: Retrieved passage backing the citation.
+        metadata:
+          $ref: '#/components/schemas/SourceDocumentMetadata'
+
+    SourceDocumentMetadata:
+      type: object
+      required: [document, key, paragraph_id]
+      properties:
+        document:
+          type: string
+          description: Document (file) name.
+        key:
           type: string
           description: Document (file) id.
-        name:
-          type: string
-          description: File name.
-        quote:
+        paragraph_id:
+          type: integer
+          minimum: 0
+          description: Progressive index of the citation within the answer.
+        temporary_url:
           type: [string, 'null']
-          description: Retrieved passage backing the citation, when available.
+        h1:
+          type: [string, 'null']
+        h2:
+          type: [string, 'null']
+        h3:
+          type: [string, 'null']
 
     ToolCall:
       type: object
@@ -681,16 +700,26 @@ components:
 
     TokenUsage:
       type: object
+      required: [completion_input_tokens, completion_output_tokens, embedding_tokens]
       properties:
+        completion_input_tokens:
+          type: integer
+          minimum: 0
+        completion_output_tokens:
+          type: integer
+          minimum: 0
+        embedding_tokens:
+          type: integer
+          minimum: 0
+
+    SuggestedPrompt:
+      type: object
+      required: [title, prompt]
+      properties:
+        title:
+          type: string
         prompt:
-          type: integer
-          minimum: 0
-        completion:
-          type: integer
-          minimum: 0
-        total:
-          type: integer
-          minimum: 0
+          type: string
 
     Rating:
       type: string
@@ -719,7 +748,7 @@ components:
         suggested_prompts:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/SuggestedPrompt'
         thinking:
           type: string
         tool_calls:
@@ -793,9 +822,9 @@ components:
           type: string
         name:
           type: string
-        quote:
+        page_content:
           type: [string, 'null']
-          description: First quote seen for this document.
+          description: First passage seen for this document.
         first_step:
           type: integer
           minimum: 0

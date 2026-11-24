@@ -42,4 +42,4 @@ public sealed record CreateConversationResponse(ConversationDto Conversation, IR
 
 public sealed record PageDto<T>(IReadOnlyList<T> Items, int Page, int PageSize, int Total);
 
-public sealed record ConversationDocumentDto(string Id, string Name, string? Quote, int FirstStep, int CitationCount);
+public sealed record ConversationDocumentDto(string Id, string Name, string? PageContent, int FirstStep, int CitationCount);
