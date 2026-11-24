@@ -10,6 +10,35 @@
 | `samples/docs` | Sample documents (fictional Commonroom Labs) |
 | `packages/chat-widget`, `apps/demo-host` | reserved (later steps) |
 
+## Quick start
+
+```bash
+cp deploy/env.example deploy/env.local   # set PREFIX and LEVEL (and AWS_PROFILE if not "default")
+deploy/setup.sh --dry-run                # prints every command, no cloud calls, nothing written
+deploy/setup.sh                          # asks the first user's email and password
+```
+
+PowerShell 7: `pwsh deploy/setup.ps1 -DryRun`, then `pwsh deploy/setup.ps1`.
+
+| `LEVEL` | Creates | Cost |
+|---|---|---|
+| `local-fake` | Cognito user pool + app clients (AWS), first user, backend user-secrets (`Chat:Engine=Fake`), `apps/demo-host/.env.local` | Cognito free tier for low monthly active users; API and site run locally |
+| `local-foundry` | `local-fake` + Azure resource group, Foundry resource, project and model deployment, vector store from `DOCS_DIR` (`Chat:Engine=Foundry`) | + pay per token and per vector store use, no fixed fee |
+| `azure` | `local-foundry` + App Service plan F1 and web app (managed identity), Static Web App Free, Cognito callbacks for the site | + nothing fixed: F1 and Static Web App Free are free |
+
+- Needs .NET 10 SDK, Node.js, AWS CLI v2, Azure CLI (for `local-foundry` and `azure`) and active sessions
+  (`aws login --profile <profile>`, `az login`): if one is missing or expired the script says so and stops.
+- Re-runnable: progress is kept in `deploy/.state.json` (gitignored), finished steps are skipped. Resource
+  names are `<kind>-<PREFIX>-<random suffix>`, the suffix is generated at the first run.
+- The API key and the password are never printed or saved in the state: the key goes only to the backend
+  user-secrets and `apps/demo-host/.env*.local`, the password only to Cognito.
+- One `CommonroomAuthStack` per AWS account and region, and one deployment per clone: the script stops if the
+  stack exists without having been created by it, or if `infra/Commonroom.Infra/cdk.context.json` already
+  holds another `domainPrefix`.
+
+Step-by-step commands: [Deploy su Azure](#deploy-su-azure). To remove everything: `deploy/teardown.sh`
+(or `pwsh deploy/teardown.ps1`), which asks to type the `PREFIX`.
+
 Azure deployment (Foundry, App Service, Static Web App): see [Deploy su Azure](#deploy-su-azure).
 
 No real IDs or secrets are committed. Put local values in user-secrets or environment variables.

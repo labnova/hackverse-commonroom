@@ -3,6 +3,8 @@ obj/
 node_modules/
 cdk.out/
 cdk.context.json
+deploy/env.local
+deploy/.state.json
 .env
 .env.*
 !.env.example
